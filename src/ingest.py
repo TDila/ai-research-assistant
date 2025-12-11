@@ -28,4 +28,4 @@ if __name__ == "__main__":
     text = extract_text_from_pdf(path)
     chunks = chunk_text(text)
     print(f"How many chunks we received: {len(chunks)}")
-    print("First chunk preview: \n", chunks[1])
+    print("First chunk preview: \n", chunks[0][:300])
