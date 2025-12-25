@@ -23,7 +23,7 @@ class VectorStore:
         return results
 
 if __name__ == "__main__":
-    from embeddings import get_embedding
+    from src.embeddings import get_embedding
 
     chunks = [
         "Machine learning is a subset of AI.",

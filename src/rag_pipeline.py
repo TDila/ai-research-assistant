@@ -1,7 +1,10 @@
-from embeddings import get_embedding
-from vector_store import VectorStore
+from src.embeddings import get_embedding
+from src.vector_store import VectorStore
 from openai import OpenAI
+from dotenv import load_dotenv
 import os
+
+load_dotenv()
 
 client = OpenAI(
     api_key=os.getenv("OPENAI_API_KEY")
@@ -40,7 +43,7 @@ Answer:
         return response.choices[0].message.content
     
 if __name__ == "__main__":
-    from ingest import extract_text_from_pdf, chunk_text
+    from src.ingest import extract_text_from_pdf, chunk_text
 
     text = extract_text_from_pdf("../data/sample.pdf")
     chunks = chunk_text(text)
