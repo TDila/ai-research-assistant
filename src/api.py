@@ -4,6 +4,8 @@ from src.embeddings import get_embedding
 from src.vector_store import VectorStore
 from src.rag_pipeline import RAGPipeline
 from pydantic import BaseModel
+from fastapi import HTTPException
+import os
 
 app = FastAPI(title="AI Research Assistant")
 
@@ -26,8 +28,23 @@ class LiteratureReviewRequest(BaseModel):
 def ingest_pdf(request: IngestRequest):
     global vector_store, rag_pipeline
 
+    if not request.pdf_path:
+        raise HTTPException(status_code=400, detail="pdf_path is required")
+
+    if not os.path.exists(request.pdf_path):
+        raise HTTPException(
+            status_code=404,
+            detail="PDF file not found"
+        )
+    
     text = extract_text_from_pdf(request.pdf_path)
     chunks = chunk_text(text)
+
+    if not chunks:
+        raise HTTPException(
+            status_code=400,
+            detail="No text extracted from PDF"
+        )
 
     embeddings = [get_embedding(c) for c in chunks]
 
@@ -41,15 +58,34 @@ def ingest_pdf(request: IngestRequest):
 @app.post("/query")
 def query_document(request: QueryRequest):
     if rag_pipeline is None:
-        return {"error": "No document ingested yet"}
+        raise HTTPException(
+            status_code=400,
+            detail="No document ingested yet"
+        )
+    
+    if not request.question.strip():
+        raise HTTPException(
+            status_code=400,
+            detail="Question cannot be empty"
+        )
     
     answer = rag_pipeline.ask(request.question)
+
+    if not answer:
+        raise HTTPException(
+            status_code=500,
+            detail="Failed to generate answer"
+        )
+    
     return {"question":request.question, "answer":answer}
 
 @app.post("/summary")
 def summarize_document(request: SummaryRequest):
     if rag_pipeline is None:
-        return {"error": "No document ingested yet"}
+        raise HTTPException(
+            status_code=400,
+            detail="No document ingested yet"
+        )
     
     query_embedding = get_embedding("Summarize the document")
     top_chunks = vector_store.search(
@@ -73,7 +109,10 @@ Summary:
 @app.post("/literature-review")
 def literature_review(request: LiteratureReviewRequest):
     if rag_pipeline is None:
-        return {"error": "No document ingested yet"}
+        raise HTTPException(
+            status_code=400,
+            detail="No document ingested yet"
+        )
     
     query_embedding = get_embedding("Generated a structured literature review")
     chunks = vector_store.search(
