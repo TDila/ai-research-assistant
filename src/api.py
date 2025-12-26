@@ -19,6 +19,9 @@ class QueryRequest(BaseModel):
 class SummaryRequest(BaseModel):
     max_chunks: int = 5
 
+class LiteratureReviewRequest(BaseModel):
+    max_chunks: int = 6
+
 @app.post("/ingest")
 def ingest_pdf(request: IngestRequest):
     global vector_store, rag_pipeline
@@ -66,3 +69,42 @@ Summary:
 """
     answer = rag_pipeline.ask(prompt)
     return {"summary":answer}
+
+@app.post("/literature-review")
+def literature_review(request: LiteratureReviewRequest):
+    if rag_pipeline is None:
+        return {"error": "No document ingested yet"}
+    
+    query_embedding = get_embedding("Generated a structured literature review")
+    chunks = vector_store.search(
+        query_embedding,
+        top_k=request.max_chunks
+    )
+
+    context = "\n\n".join(chunks)
+
+    prompt = f"""
+You are an academic research assistant.
+
+Based ONLY on the context below, generate a structured literature review using the following format:
+
+Problem:
+- ...
+
+Methodology:
+- ...
+
+Dataset:
+- ...
+
+Results:
+- ...
+
+Limitations:
+- ...
+
+Context:
+{context}
+"""
+    answer = rag_pipeline.ask(prompt)
+    return {"literature_review": answer}
