@@ -6,6 +6,14 @@ from src.rag_pipeline import RAGPipeline
 from pydantic import BaseModel
 from fastapi import HTTPException
 import os
+import logging
+
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s - %(levelname)s - %(message)s"
+)
+
+logger = logging.getLogger(__name__)
 
 app = FastAPI(title="AI Research Assistant")
 
@@ -26,6 +34,8 @@ class LiteratureReviewRequest(BaseModel):
 
 @app.post("/ingest")
 def ingest_pdf(request: IngestRequest):
+    logger.info(f"Ingesting PDF: {request.pdf_path}")
+
     global vector_store, rag_pipeline
 
     if not request.pdf_path:
@@ -53,10 +63,14 @@ def ingest_pdf(request: IngestRequest):
 
     rag_pipeline = RAGPipeline(vector_store)
 
+    logger.info(f"PDF ingested successfully with {len(chunks)} chunks")
+
     return {"message": "PDF ingested successfully", "chunks": len(chunks)}
 
 @app.post("/query")
 def query_document(request: QueryRequest):
+    logger.info(f"Received query: {request.question}")
+
     if rag_pipeline is None:
         raise HTTPException(
             status_code=400,
@@ -77,10 +91,14 @@ def query_document(request: QueryRequest):
             detail="Failed to generate answer"
         )
     
+    logger.info("Query answered successfully")
+
     return {"question":request.question, "answer":answer}
 
 @app.post("/summary")
 def summarize_document(request: SummaryRequest):
+    logger.info("Generating document summary")
+
     if rag_pipeline is None:
         raise HTTPException(
             status_code=400,
@@ -108,6 +126,8 @@ Summary:
 
 @app.post("/literature-review")
 def literature_review(request: LiteratureReviewRequest):
+    logger.info("Generating structured literature review")
+
     if rag_pipeline is None:
         raise HTTPException(
             status_code=400,
